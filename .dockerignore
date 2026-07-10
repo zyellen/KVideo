@@ -9,3 +9,5 @@ README.md
 *.tsbuildinfo
 next-env.d.ts
 .git
+# 避免把本地环境变量（含密码）打进镜像
+.env*

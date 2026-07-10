@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
@@ -19,7 +20,11 @@ interface NavbarProps {
 export function Navbar({ onReset, isPremiumMode = false }: NavbarProps) {
     const settingsHref = isPremiumMode ? '/premium/settings' : '/settings';
     const favoritesHref = isPremiumMode ? '/premium/favorites' : '/favorites';
+    const pathname = usePathname();
     const [session, setSessionState] = useState<AuthSession | null>(() => getSession());
+    // 当前是否已在 premium 相关页面，避免重复展示入口
+    const isOnPremiumPage = pathname?.startsWith('/premium');
+    const isSuperAdmin = session?.role === 'super_admin';
     const { iptvEnabled } = useRuntimeFeatures();
     const siteIconSrc = useSiteIcon();
 
@@ -136,6 +141,18 @@ export function Navbar({ onReset, isPremiumMode = false }: NavbarProps) {
                             >
                                 <Icons.Heart size={20} />
                             </Link>
+                            {/* 高级内容入口：仅超级管理员可见，已处于 premium 页面时不重复展示 */}
+                            {session && isSuperAdmin && !isOnPremiumPage && (
+                            <Link
+                                href="/premium"
+                                className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-[var(--radius-full)] bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-color)] hover:bg-[color-mix(in_srgb,var(--accent-color)_10%,transparent)] transition-all duration-200 cursor-pointer"
+                                aria-label="高级内容"
+                                title="高级内容"
+                                data-focusable
+                            >
+                                <Icons.Star size={20} />
+                            </Link>
+                            )}
                             <Link
                                 href={settingsHref}
                                 className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-[var(--radius-full)] bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-color)] hover:bg-[color-mix(in_srgb,var(--accent-color)_10%,transparent)] transition-all duration-200 cursor-pointer"

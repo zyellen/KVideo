@@ -4,7 +4,7 @@ interface SwipeGestureHandlers {
     /** 滑动快进回调，参数为滑动的秒数 */
     onSeekForward: (seconds: number) => void;
     /** 滑动快退回调，参数为滑动的秒数 */
-    onSeekBackward: (seconds) => void;
+    onSeekBackward: (seconds: number) => void;
     /** 滑动开始回调 */
     onSwipeStart?: () => void;
     /** 滑动结束回调 */

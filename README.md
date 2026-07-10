@@ -988,6 +988,8 @@ npm run pages:build
 
 ### Docker 部署
 
+#### 方式一：拉取官方镜像
+
 当有新版本发布时：
 
 ```bash
@@ -1001,6 +1003,42 @@ docker pull kuekhaoyang/kvideo:latest
 # 运行新容器
 docker run -d -p 3000:3000 --name kvideo kuekhaoyang/kvideo:latest
 ```
+
+> 该方式仅运行 KVideo 单个容器，未包含 Redis，账户管理（托管模式）不会启用，只能使用环境变量密码登录。
+
+#### 方式二：本地源码构建（自带 Redis，支持账户管理）
+
+适用于本地修改代码后部署，或需要账户管理（托管模式）的场景。本仓库的 `docker-compose.yml` 会一并启动 `redis` + `redis-rest` 网关，把本地 Redis 包装成 `@upstash/redis` 所需的 REST 接口，**KVideo 代码无需改动即可使用账户管理**。
+
+首次构建并启动：
+
+```bash
+cd KVideo
+docker compose up -d --build
+```
+
+日常重新部署：
+
+```bash
+# 改了代码 → 重新构建 KVideo 镜像并重启（Redis 不受影响，账户数据保留）
+docker compose up -d --build
+
+# 只改了 .env.local → 重新读取环境变量并 recreate（无需重新构建）
+docker compose up -d
+```
+
+说明：
+
+- 账户管理入口（创建/编辑/删除账户、角色权限）只在托管模式下出现，需 `AUTH_SECRET` + Redis 配置齐全。本 compose 已通过 `redis-rest` 网关注入 `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`，无需你单独安装或配置 Redis。
+- 登录方式在托管模式下为「用户名 + 密码」；首次启动时用 `ADMIN_PASSWORD`（见 `.env.local`）作为超级管理员 `admin` 的种子密码引导出账户。
+- `redis` 服务已挂载 `redis-data` 命名卷做持久化，重启/重建容器后账户数据不丢失。
+- **不要随意执行 `docker compose down`**：虽然已开启持久化（数据不丢），但它会停止 Redis 与网关；日常更新用上面的 `up -d --build` 即可。
+- 若偶尔遇到容器名冲突，清理后再启动：
+
+  ```bash
+  docker rm -f kvideo kvideo-redis kvideo-redis-rest
+  docker compose up -d --build
+  ```
 
 ### Node.js 部署
 

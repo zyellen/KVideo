@@ -16,25 +16,35 @@ import {
   resolvePermissions,
 } from '@/lib/auth/permissions';
 
-function withNodeEnv<T>(value: string | undefined, callback: () => T): T {
-  const previous = process.env.NODE_ENV;
+/**
+ * 在临时设置的 NODE_ENV 下运行回调，结束后恢复原值。
+ * @types/node 将 process.env 声明为只读，但运行时实际可写，
+ * 因此通过局部类型断言绕过只读限制来动态切换环境变量。
+ * @param value 要临时设置的 NODE_ENV 值，传 undefined 表示删除该变量
+ * @param callback 需要在该环境下执行的回调
+ * @returns 回调的返回值
+ */
+const withNodeEnv = <T,>(value: string | undefined, callback: () => T): T => {
+  // 绕过 @types/node 对 process.env 的只读声明（运行时允许写入/删除）
+  const env = process.env as Record<string, string | undefined>;
+  const previous = env.NODE_ENV;
 
   if (value === undefined) {
-    delete process.env.NODE_ENV;
+    delete env.NODE_ENV;
   } else {
-    process.env.NODE_ENV = value;
+    env.NODE_ENV = value;
   }
 
   try {
     return callback();
   } finally {
     if (previous === undefined) {
-      delete process.env.NODE_ENV;
+      delete env.NODE_ENV;
     } else {
-      process.env.NODE_ENV = previous;
+      env.NODE_ENV = previous;
     }
   }
-}
+};
 
 function mockCookieRequest(protocol: 'http:' | 'https:', forwardedProtocol?: string) {
   return {

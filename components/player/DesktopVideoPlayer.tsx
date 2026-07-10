@@ -362,30 +362,31 @@ export function DesktopVideoPlayer({
     duration,
   });
 
-  // 双击手势：左侧快退、右侧快进、中间暂停/播放
+  // 双击手势：双击（任意位置）暂停/播放；快进快退改由左右滑动手势控制
   const { handleTap } = useDoubleTap({
     onSingleTap: handleTouchToggleControls,
     onDoubleTapLeft: () => {
-      logic.skipBackward();
+      togglePlay();
       handleMouseMove();
     },
     onDoubleTapRight: () => {
-      logic.skipForward();
+      togglePlay();
       handleMouseMove();
     },
     onDoubleTapCenter: () => {
       togglePlay();
       handleMouseMove();
     },
+    // 已移除点击快进快退，连点回调不再执行跳转
     onSkipContinueLeft: () => {
-      logic.skipBackward();
+      togglePlay();
       handleMouseMove();
     },
     onSkipContinueRight: () => {
-      logic.skipForward();
+      togglePlay();
       handleMouseMove();
     },
-    isSkipModeActive: data.showSkipForwardIndicator || data.showSkipBackwardIndicator,
+    isSkipModeActive: false,
   });
 
   return (

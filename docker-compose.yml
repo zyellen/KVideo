@@ -1,6 +1,34 @@
-version: '3'
+# 本地 Redis 由本 compose 内的 redis 服务提供，无需在宿主机单独安装。
+# redis-rest 网关把普通 Redis 包装为 @upstash/redis 所需的 REST 接口，KVideo 代码无需改动。
 
 services:
+  # 本地 Redis 实例（数据存储）
+  redis:
+    image: redis:7-alpine
+    container_name: kvideo-redis
+    restart: always
+    # 持久化 Redis 数据，避免重启/重建容器后账户丢失
+    volumes:
+      - redis-data:/data
+    expose:
+      - "6379"
+
+  # Upstash REST 兼容网关：包装上面的本地 Redis
+  redis-rest:
+    image: hiett/serverless-redis-http:latest
+    container_name: kvideo-redis-rest
+    restart: always
+    environment:
+      - SRH_MODE=env
+      - SRH_TOKEN=local-dev-token
+      - SRH_CONNECTION_STRING=redis://redis:6379
+      # 该镜像默认监听 80 端口
+      - PORT=80
+    expose:
+      - "80"
+    depends_on:
+      - redis
+
   kvideo:
     container_name: kvideo
     build:
@@ -9,5 +37,18 @@ services:
     restart: always
     ports:
       - 3000:3000
+    # 通过 env_file 注入运行时环境变量（.env.local 已被 .gitignore 忽略，不会泄露）
+    env_file:
+      - .env.local
     environment:
+      # environment 中的变量优先级高于 env_file，显式覆盖 NODE_ENV
       - NODE_ENV=production
+      # 指向本地 Redis REST 网关（由上方 redis-rest 服务提供，监听 80 端口）
+      - UPSTASH_REDIS_REST_URL=http://redis-rest:80
+      - UPSTASH_REDIS_REST_TOKEN=local-dev-token
+    depends_on:
+      - redis-rest
+
+# Redis 数据持久化卷（账号、配置、历史、收藏等存储在 redis 中）
+volumes:
+  redis-data:
