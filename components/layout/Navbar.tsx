@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
@@ -19,9 +19,19 @@ interface NavbarProps {
 export function Navbar({ onReset, isPremiumMode = false }: NavbarProps) {
     const settingsHref = isPremiumMode ? '/premium/settings' : '/settings';
     const favoritesHref = isPremiumMode ? '/premium/favorites' : '/favorites';
-    const [session] = useState<AuthSession | null>(() => getSession());
+    const [session, setSessionState] = useState<AuthSession | null>(() => getSession());
     const { iptvEnabled } = useRuntimeFeatures();
     const siteIconSrc = useSiteIcon();
+
+    useEffect(() => {
+        // 读取 session（优先从内存缓存读取，解决时序问题）
+        const refreshSession = () => setSessionState(getSession());
+        refreshSession();
+
+        // 监听 session 变化事件（登录/退出时即时响应）
+        window.addEventListener('kvideo-session-changed', refreshSession);
+        return () => window.removeEventListener('kvideo-session-changed', refreshSession);
+    }, []);
 
     const handleLogout = () => {
         fetch('/api/auth/session', { method: 'DELETE' })
@@ -82,21 +92,26 @@ export function Navbar({ onReset, isPremiumMode = false }: NavbarProps) {
 
                             {/* User Info */}
                             {session && (
-                                <div className="hidden sm:flex items-center gap-2">
-                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[var(--radius-full)] text-xs">
+                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <Link
+                                        href={settingsHref}
+                                        className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[var(--radius-full)] text-xs hover:bg-[color-mix(in_srgb,var(--accent-color)_10%,transparent)] transition-all duration-200 cursor-pointer"
+                                        aria-label="当前用户"
+                                        data-focusable
+                                    >
                                         <div className="w-5 h-5 rounded-[var(--radius-full)] bg-[var(--accent-color)]/10 flex items-center justify-center text-[var(--accent-color)] font-bold text-[10px] border border-[var(--glass-border)]">
                                             {session.name.charAt(0)}
                                         </div>
-                                        <span className="text-[var(--text-color)] max-w-[60px] truncate">{session.name}</span>
+                                        <span className="text-[var(--text-color)] max-w-[50px] sm:max-w-[60px] truncate">{session.name}</span>
                                         {(session.role === 'admin' || session.role === 'super_admin') && (
-                                            <span className="px-1 py-0.5 bg-[var(--accent-color)]/10 text-[var(--accent-color)] rounded text-[10px] font-medium">
+                                            <span className="hidden sm:inline px-1 py-0.5 bg-[var(--accent-color)]/10 text-[var(--accent-color)] rounded text-[10px] font-medium">
                                                 {session.role === 'super_admin' ? '超管' : '管理'}
                                             </span>
                                         )}
-                                    </div>
+                                    </Link>
                                     <button
                                         onClick={handleLogout}
-                                        className="w-8 h-8 sm:w-8 sm:h-8 flex items-center justify-center rounded-[var(--radius-full)] bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-color-secondary)] hover:text-red-500 hover:border-red-500/30 transition-all duration-200 cursor-pointer"
+                                        className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-full)] bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-color-secondary)] hover:text-red-500 hover:border-red-500/30 transition-all duration-200 cursor-pointer"
                                         aria-label="退出登录"
                                         title="退出登录"
                                     >

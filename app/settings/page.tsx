@@ -17,6 +17,7 @@ import { UserDanmakuSettings } from '@/components/settings/UserDanmakuSettings';
 import { PermissionGate } from '@/components/PermissionGate';
 import { hasPermission } from '@/lib/store/auth-store';
 import { useSettingsPage } from './hooks/useSettingsPage';
+import { Navbar } from '@/components/layout/Navbar';
 
 export default function SettingsPage() {
   const {
@@ -77,6 +78,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-color)] bg-[image:var(--bg-image)] bg-fixed">
+      <Navbar onReset={() => {}} />
       <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
         {/* Header */}
         <SettingsHeader />

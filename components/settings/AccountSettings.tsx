@@ -92,6 +92,7 @@ export function AccountSettings() {
   const [isDirty, setIsDirty] = useState(false);
   const [showLegacyConfig, setShowLegacyConfig] = useState(false);
   const [legacyEntries, setLegacyEntries] = useState<LegacyConfigEntry[]>([]);
+  const [configLoaded, setConfigLoaded] = useState(false);
 
   const canManageAccounts = session?.role === 'super_admin';
   const isManagedMode = loginMode === 'managed';
@@ -122,8 +123,11 @@ export function AccountSettings() {
   }, [canManageAccounts]);
 
   useEffect(() => {
-    setSessionState(getSession());
+    // 读取 session（优先从内存缓存读取，PasswordGate 已设置）
+    const refreshSession = () => setSessionState(getSession());
+    refreshSession();
 
+    // 仅获取 auth 配置（loginMode 等），session 由 PasswordGate 负责设置
     fetch('/api/auth')
       .then((response) => response.json())
       .then((data) => {
@@ -131,8 +135,15 @@ export function AccountSettings() {
         setLoginMode(data.loginMode || 'none');
       })
       .catch(() => {
-        // Ignore config failures and keep the conservative default.
+        // 忽略配置获取失败
+      })
+      .finally(() => {
+        setConfigLoaded(true);
       });
+
+    // 监听 session 变化（登录/退出时自动刷新）
+    window.addEventListener('kvideo-session-changed', refreshSession);
+    return () => window.removeEventListener('kvideo-session-changed', refreshSession);
   }, []);
 
   useEffect(() => {
@@ -333,7 +344,10 @@ export function AccountSettings() {
       .join(',');
   }, [legacyEntries]);
 
-  if (!hasAuth && !session) return null;
+  // 配置加载完成或已有 session 时显示，避免初始渲染闪烁
+  const showSection = configLoaded || !!session;
+
+  if (!showSection) return null;
 
   return (
     <SettingsSection title="账户管理" description="查看当前登录用户，并根据部署模式管理访问账户。">

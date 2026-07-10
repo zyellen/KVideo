@@ -14,6 +14,7 @@ import { usePlayerSettings } from './hooks/usePlayerSettings';
 import { useDanmaku } from './hooks/useDanmaku';
 import { useIsIOS, useIsMobile } from '@/lib/hooks/mobile/useDeviceDetection';
 import { useDoubleTap } from '@/lib/hooks/mobile/useDoubleTap';
+import { useSwipeGesture } from '@/lib/hooks/mobile/useSwipeGesture';
 import { settingsStore, DEFAULT_SEEK_STEP_SECONDS } from '@/lib/store/settings-store';
 import { premiumModeSettingsStore } from '@/lib/store/premium-mode-settings';
 import { shouldHidePlayerCursor } from '@/lib/player/cursor-visibility';
@@ -330,16 +331,51 @@ export function DesktopVideoPlayer({
     : 'kvideo-stage absolute inset-0';
   const isTopAlignedWebFullscreen = data.fullscreenMode === 'window' && isMobile && !isLandscape && !shouldForceLandscape;
 
-  // Mobile double-tap gesture for skip forward/backward
+  // 滑动快进/快退手势
+  const {
+    handleTouchStart: handleSwipeTouchStart,
+    handleTouchMove: handleSwipeTouchMove,
+    handleTouchEnd: handleSwipeTouchEnd,
+    swipeSeekOffset,
+    swipeDirection,
+  } = useSwipeGesture({
+    onSeekForward: (seconds) => {
+      if (!videoRef.current) return;
+      const targetTime = Math.min(videoRef.current.currentTime + seconds, duration);
+      videoRef.current.currentTime = targetTime;
+      actions.setCurrentTime(targetTime);
+      handleMouseMove();
+    },
+    onSeekBackward: (seconds) => {
+      if (!videoRef.current) return;
+      const targetTime = Math.max(videoRef.current.currentTime - seconds, 0);
+      videoRef.current.currentTime = targetTime;
+      actions.setCurrentTime(targetTime);
+      handleMouseMove();
+    },
+    onSwipeStart: () => {
+      setShowControls(false);
+    },
+    onSwipeEnd: () => {
+      setShowControls(true);
+    },
+    duration,
+  });
+
+  // 双击手势：左侧快退、右侧快进、中间暂停/播放
   const { handleTap } = useDoubleTap({
     onSingleTap: handleTouchToggleControls,
     onDoubleTapLeft: () => {
       logic.skipBackward();
-      handleMouseMove(); // Reset 3s auto-hide timer
+      handleMouseMove();
     },
     onDoubleTapRight: () => {
       logic.skipForward();
-      handleMouseMove(); // Reset 3s auto-hide timer
+      handleMouseMove();
+    },
+    onDoubleTapCenter: () => {
+      togglePlay();
+      handleMouseMove();
     },
     onSkipContinueLeft: () => {
       logic.skipBackward();
@@ -365,7 +401,12 @@ export function DesktopVideoPlayer({
         {/* Clipping Wrapper for video and overlays - Restores the 'Liquid Glass' rounded look */}
         <div className={`absolute inset-0 overflow-hidden pointer-events-none ${data.fullscreenMode === 'window' ? 'rounded-none' : 'rounded-none sm:rounded-[var(--radius-2xl)]'
           }`}>
-          <div className="absolute inset-0 pointer-events-auto">
+          <div className="absolute inset-0 pointer-events-auto"
+            onTouchStart={isMobile ? (e) => { handleSwipeTouchStart(e); handleTap(e); } : undefined}
+            onTouchMove={isMobile ? handleSwipeTouchMove : undefined}
+            onTouchEnd={isMobile ? handleSwipeTouchEnd : undefined}
+            onDoubleClick={!isMobile ? () => { togglePlay(); } : undefined}
+          >
           {/* Video Element */}
           <video
             ref={videoRef}
@@ -382,10 +423,6 @@ export function DesktopVideoPlayer({
             onError={handleVideoError}
             onWaiting={() => setIsLoading(true)}
             onCanPlay={() => setIsLoading(false)}
-            onClick={!isMobile ? () => {
-              togglePlay();
-            } : undefined}
-            onTouchStart={isMobile ? handleTap : undefined}
             {...LEGACY_INLINE_VIDEO_PROPS} // Legacy iOS support
           />
 
@@ -397,6 +434,26 @@ export function DesktopVideoPlayer({
               isPlaying={isPlaying}
               duration={duration}
             />
+          )}
+
+          {/* 滑动快进/快退指示器 */}
+          {swipeSeekOffset > 0 && swipeDirection && (
+            <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/60 text-white text-sm font-medium">
+                {swipeDirection === 'backward' ? (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12.5 8.5L8 12l4.5 3.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.5L15 12l4.5 3.5" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.5 8.5L16 12l-4.5 3.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 8.5L9 12l-4.5 3.5" />
+                  </svg>
+                )}
+                <span>{swipeDirection === 'forward' ? '+' : '-'}{Math.round(swipeSeekOffset)}s</span>
+              </div>
+            </div>
           )}
 
           {/* Video Resolution Badge - follows controls bar visibility */}

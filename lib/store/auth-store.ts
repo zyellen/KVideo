@@ -26,6 +26,10 @@ export interface AuthSession {
 
 const SESSION_KEY = 'kvideo-session';
 
+// 模块级内存缓存：setSession 时同步写入，getSession 时优先读取
+// 解决 sessionStorage 时序问题（PasswordGate 设置 session 后子组件立即读取）
+let cachedSession: AuthSession | null = null;
+
 function isValidSession(value: unknown): value is AuthSession {
   if (!value || typeof value !== 'object') return false;
   const session = value as Partial<AuthSession>;
@@ -40,17 +44,30 @@ function notifySessionChange(): void {
   window.dispatchEvent(new Event('kvideo-session-changed'));
 }
 
+/**
+ * 获取当前 session —— 优先读内存缓存，其次读 sessionStorage/localStorage
+ */
 export function getSession(): AuthSession | null {
+  // 1. 先读内存缓存（PasswordGate setSession 后立即可用，无时序问题）
+  if (cachedSession) {
+    return cachedSession;
+  }
+
   if (typeof window === 'undefined') return null;
 
+  // 2. 回退到 storage（页面刷新后内存缓存丢失，从 storage 恢复）
   const raw = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
 
   try {
     const parsed = JSON.parse(raw);
-    if (!isValidSession(parsed)) return null;
+    if (!isValidSession(parsed)) {
+      return null;
+    }
 
-    return {
+    const session: AuthSession = {
       accountId: parsed.accountId,
       profileId: parsed.profileId,
       username: typeof parsed.username === 'string' ? parsed.username : undefined,
@@ -59,13 +76,26 @@ export function getSession(): AuthSession | null {
       customPermissions: normalizePermissions(parsed.customPermissions),
       mode: parsed.mode === 'managed' ? 'managed' : parsed.mode === 'legacy' ? 'legacy' : undefined,
     };
+
+    // 恢复到内存缓存
+    cachedSession = session;
+    return session;
   } catch {
     return null;
   }
 }
 
+/**
+ * 设置 session —— 同步写入内存缓存 + sessionStorage/localStorage
+ */
 export function setSession(session: AuthSession, persist: boolean): void {
-  if (typeof window === 'undefined') return;
+  // 内存缓存：无论是否有 window 都写入（SSR 时也不影响，因为 getSession 会先检查 window）
+  cachedSession = session;
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
   const data = JSON.stringify({
     accountId: session.accountId,
     profileId: session.profileId,
@@ -86,8 +116,14 @@ export function setSession(session: AuthSession, persist: boolean): void {
   notifySessionChange();
 }
 
+/**
+ * 清除 session —— 清除内存缓存 + storage
+ */
 export function clearSession(): void {
+  cachedSession = null;
+
   if (typeof window === 'undefined') return;
+
   sessionStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem('kvideo_search_cache');
