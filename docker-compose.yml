@@ -35,6 +35,8 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
+    # 默认使用 bridge 网络并发布端口，方便在 macOS / 任意平台访问。
+    # （Docker Desktop 在 macOS / Windows 上不支持 network_mode: host）
     ports:
       - 3000:3000
     # 通过 env_file 注入运行时环境变量（.env.local 已被 .gitignore 忽略，不会泄露）
@@ -52,3 +54,21 @@ services:
 # Redis 数据持久化卷（账号、配置、历史、收藏等存储在 redis 中）
 volumes:
   redis-data:
+
+# ---------------------------------------------------------------------------
+# DLNA 投屏设备发现的网络说明
+# 投屏依赖 SSDP 组播，需要「运行发现的进程」与投屏设备处于同一广播域：
+#
+# 1) Linux 部署（支持 host 网络）：
+#    把上面 kvideo 服务的 `ports:` 映射删掉，改为：
+#        network_mode: host
+#    并把 redis-rest 增加 `ports: - "18080:80"`，
+#    再将 kvideo 的 UPSTASH_REDIS_REST_URL 改为 http://127.0.0.1:18080
+#    （host 模式下容器不再处于 compose 网络，需用宿主机回环地址访问 redis-rest）。
+#
+# 2) macOS (Docker Desktop)：不支持 host 网络，容器内无法组播发现局域网设备。
+#    若要在本机使用「投屏到同局域网设备」，建议在宿主机原生运行 KVideo：
+#        ALLOW_LAN_ACCESS=true pnpm dev
+#    （脚本会将 HOSTNAME 设为 0.0.0.0，使 Node 进程能组播发现设备，
+#      且同局域网设备可经 http://<本机IP>:3001 回源拉流）
+# ---------------------------------------------------------------------------

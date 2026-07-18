@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icons } from '@/components/ui/Icon';
+import { CastMenu } from './CastMenu';
 
 
 
@@ -9,6 +10,14 @@ interface DesktopRightControlsProps {
     isPiPSupported: boolean;
     isAirPlaySupported: boolean;
     isCastAvailable: boolean;
+    /** 当前播放地址，用于投屏到局域网设备 */
+    src: string;
+    /** 视频元素引用，用于读取投屏起始进度 */
+    videoRef: React.RefObject<HTMLVideoElement | null>;
+    /** 是否正在投屏（含 Chromecast） */
+    isCasting: boolean;
+    /** 通知播放器更新投屏状态 */
+    onCastingChange: (casting: boolean) => void;
     onToggleNativeFullscreen: () => void;
     onToggleWebFullscreen: () => void;
     onTogglePictureInPicture: () => void;
@@ -22,6 +31,10 @@ export function DesktopRightControls({
     isPiPSupported,
     isAirPlaySupported,
     isCastAvailable,
+    src,
+    videoRef,
+    isCasting,
+    onCastingChange,
     onToggleNativeFullscreen,
     onToggleWebFullscreen,
     onTogglePictureInPicture,
@@ -58,19 +71,15 @@ export function DesktopRightControls({
                 )
             }
 
-            {/* Google Cast */}
-            {
-                isCastAvailable && (
-                    <button
-                        onClick={onShowCastMenu}
-                        className="btn-icon"
-                        aria-label="投屏"
-                        title="投屏"
-                    >
-                        <Icons.Cast size={20} />
-                    </button>
-                )
-            }
+            {/* 投屏（局域网设备 / Chromecast） */}
+            <CastMenu
+                src={src}
+                videoRef={videoRef}
+                isCastAvailable={isCastAvailable}
+                isCasting={isCasting}
+                onCastingChange={onCastingChange}
+                onShowChromecastMenu={onShowCastMenu}
+            />
 
             {/* Web Fullscreen */}
             <button

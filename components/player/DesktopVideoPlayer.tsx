@@ -362,6 +362,14 @@ export function DesktopVideoPlayer({
     duration,
   });
 
+  // PC 端：单击画面区域切换播放/暂停（与移动端双击手势区分）
+  const handleDesktopVideoToggle = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    // 仅当直接点击视频画面本身时触发，避免误触弹幕、控件等覆盖层
+    if (event.target !== videoRef.current) return;
+    togglePlay();
+    handleMouseMove();
+  }, [videoRef, togglePlay, handleMouseMove]);
+
   // 双击手势：双击（任意位置）暂停/播放；快进快退改由左右滑动手势控制
   const { handleTap } = useDoubleTap({
     onSingleTap: handleTouchToggleControls,
@@ -406,7 +414,7 @@ export function DesktopVideoPlayer({
             onTouchStart={isMobile ? (e) => { handleSwipeTouchStart(e); handleTap(e); } : undefined}
             onTouchMove={isMobile ? handleSwipeTouchMove : undefined}
             onTouchEnd={isMobile ? handleSwipeTouchEnd : undefined}
-            onDoubleClick={!isMobile ? () => { togglePlay(); } : undefined}
+            onClick={!isMobile ? handleDesktopVideoToggle : undefined}
           >
           {/* Video Element */}
           <video
@@ -518,6 +526,7 @@ export function DesktopVideoPlayer({
               data={data}
               logic={logic}
               refs={refs}
+              onCastingChange={actions.setIsCasting}
             />
           </div>
         </div>

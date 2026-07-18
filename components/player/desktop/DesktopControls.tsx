@@ -21,6 +21,14 @@ interface DesktopControlsProps {
     isAirPlaySupported: boolean;
     isCastAvailable: boolean;
     isProxied?: boolean;
+    /** 当前播放地址，用于投屏 */
+    src: string;
+    /** 视频元素引用，用于投屏进度 */
+    videoRef: React.RefObject<HTMLVideoElement | null>;
+    /** 是否正在投屏 */
+    isCasting: boolean;
+    /** 通知播放器更新投屏状态 */
+    onCastingChange: (casting: boolean) => void;
     progressBarRef: React.RefObject<HTMLDivElement | null>;
     volumeBarRef: React.RefObject<HTMLDivElement | null>;
     onTogglePlay: () => void;

@@ -8,9 +8,11 @@ interface DesktopControlsWrapperProps {
     data: ReturnType<typeof useDesktopPlayerState>['data'];
     logic: ReturnType<typeof useDesktopPlayerLogic>;
     refs: ReturnType<typeof useDesktopPlayerState>['refs'];
+    /** 通知播放器更新投屏状态 */
+    onCastingChange: (casting: boolean) => void;
 }
 
-export function DesktopControlsWrapper({ src, data, logic, refs }: DesktopControlsWrapperProps) {
+export function DesktopControlsWrapper({ src, data, logic, refs, onCastingChange }: DesktopControlsWrapperProps) {
     const {
         isPlaying,
         currentTime,
@@ -25,6 +27,7 @@ export function DesktopControlsWrapper({ src, data, logic, refs }: DesktopContro
         isPiPSupported,
         isAirPlaySupported,
         isCastAvailable,
+        isCasting,
     } = data;
 
     const {
@@ -67,6 +70,10 @@ export function DesktopControlsWrapper({ src, data, logic, refs }: DesktopContro
             isPiPSupported={isPiPSupported}
             isAirPlaySupported={isAirPlaySupported}
             isCastAvailable={isCastAvailable}
+            isCasting={isCasting}
+            onCastingChange={onCastingChange}
+            src={src}
+            videoRef={refs.videoRef}
             isProxied={isProxied}
             progressBarRef={progressBarRef}
             volumeBarRef={volumeBarRef}
