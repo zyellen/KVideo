@@ -630,6 +630,7 @@ export async function createManagedAccount(body: unknown): Promise<AccountInfo> 
     name: input.name,
     role: input.role,
     customPermissions: input.customPermissions || [],
+    shareGlobalSources: input.shareGlobalSources ?? true,
   });
 
   const nextAccounts = [...accounts, created];
