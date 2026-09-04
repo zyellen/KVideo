@@ -13,6 +13,7 @@ import { PlayerSettings } from '@/components/settings/PlayerSettings';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
 import { AppVersionSettings } from '@/components/settings/AppVersionSettings';
 import { UserSourceSettings } from '@/components/settings/UserSourceSettings';
+import { GlobalSourceSettings } from '@/components/settings/GlobalSourceSettings';
 import { UserDanmakuSettings } from '@/components/settings/UserDanmakuSettings';
 import { PermissionGate } from '@/components/PermissionGate';
 import { hasPermission } from '@/lib/store/auth-store';
@@ -127,6 +128,9 @@ export default function SettingsPage() {
 
         {/* Per-User Source Settings (visible to all logged-in users) */}
         <UserSourceSettings />
+
+        {/* Global Video Sources (admin-only, self-hides for non-admins) */}
+        <GlobalSourceSettings />
 
         {/* Per-User Danmaku Settings (visible to all logged-in users) */}
         <UserDanmakuSettings />

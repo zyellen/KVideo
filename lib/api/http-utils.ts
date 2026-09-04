@@ -11,6 +11,27 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 200;
 
 /**
+ * 可选：为 Node 服务端 fetch 配置全局 HTTP/HTTPS 代理。
+ * 仅在设置了 HTTP_PROXY / HTTPS_PROXY 环境变量时生效（见 docker-compose / .env.local）。
+ * Edge runtime 不支持 setGlobalDispatcher，捕获异常静默跳过，不影响原逻辑。
+ */
+(function setupProxyDispatcher() {
+    try {
+        const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy ||
+            process.env.HTTP_PROXY || process.env.http_proxy;
+        if (!proxyUrl) return;
+        // 动态引入 Node 内置 undici，避免在非 Node 环境下报错
+        // @ts-ignore - 用 eval('require') 逃逸 webpack 静态分析（node: scheme 无法被打包）
+        const { ProxyAgent, setGlobalDispatcher } = eval('require')('node:undici');
+        setGlobalDispatcher(new ProxyAgent(proxyUrl));
+        console.log(`[HTTP] 已启用代理: ${proxyUrl}`);
+    } catch (err) {
+        // Edge runtime 或不支持的环境下忽略，继续使用直连
+        console.warn('[HTTP] 代理初始化跳过:', (err as Error)?.message);
+    }
+})();
+
+/**
  * Fetch with timeout support
  * Accepts an optional external AbortSignal for cancellation cascade.
  */

@@ -48,6 +48,15 @@ services:
       # 指向本地 Redis REST 网关（由上方 redis-rest 服务提供，监听 80 端口）
       - UPSTASH_REDIS_REST_URL=http://redis-rest:80
       - UPSTASH_REDIS_REST_TOKEN=local-dev-token
+      # 可选：上游影视源（多为 *.tv 域名）在国内常被间歇性阻断，
+      # 若宿主机运行了 HTTP 代理（如 Clash），可在此让容器内请求走代理。
+      # macOS Docker Desktop 下用 host.docker.internal 访问宿主机，
+      # Linux 下改用 172.17.0.1 或直接填代理 IP。留空则不使用代理。
+      # 例：HTTPS_PROXY=http://host.docker.internal:7890
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
     depends_on:
       - redis-rest
 

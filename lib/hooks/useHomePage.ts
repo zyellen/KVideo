@@ -59,10 +59,9 @@ export function useHomePage() {
             }
         }
 
-        if (allSources.length === 0) {
-            return false;
-        }
-
+        // Always issue the search, even with zero local sources — the backend
+        // merges global sources into the request server-side, so a normal
+        // account without personal sources still gets search results.
         performSearch(searchQuery, allSources, settings.sortBy);
         hasSearchedWithSourcesRef.current = true;
         return true;
@@ -90,12 +89,9 @@ export function useHomePage() {
             // Check if we need to re-trigger search due to new sources being loaded
             // This fixes the issue where initial visit has 0 sources, then sources are loaded async
             // but the search (or lack thereof) is already stuck with empty sources.
-            const enabledSources = settings.sources.filter(s => s.enabled);
-            const hasSources = enabledSources.length > 0;
-
-            // If we have a query, and we haven't searched with sources yet,
-            // and we suddenly have sources, trigger the search.
-            if (query && hasSources && !hasSearchedWithSourcesRef.current && !loading) {
+            // Since executeSearch no longer blocks on empty local sources (the backend
+            // injects global sources), trigger the search as soon as a query exists.
+            if (query && !hasSearchedWithSourcesRef.current && !loading) {
                 if (executeSearch(query)) {
                     setHasSearched(true);
                 }

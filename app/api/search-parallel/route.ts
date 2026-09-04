@@ -9,8 +9,10 @@ import { NextRequest } from 'next/server';
 import { searchVideos } from '@/lib/api/client';
 import { getSourceName } from '@/lib/utils/source-names';
 import { traditionalToSimplified } from '@/lib/utils/chinese-convert';
+import { dedupeById, getGlobalSources } from '@/lib/server/global-sources';
+import type { VideoSource } from '@/lib/types';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 const MAX_TOTAL_VIDEOS = 2000;
 const MAX_PAGES_PER_SOURCE = 3;
@@ -44,9 +46,13 @@ export async function POST(request: NextRequest) {
         }
 
         const normalizedQuery = traditionalToSimplified(query.trim());
-        const sources = Array.isArray(sourceConfigs) && sourceConfigs.length > 0
-          ? sourceConfigs
-          : [];
+        const clientSources: VideoSource[] =
+          Array.isArray(sourceConfigs) && sourceConfigs.length > 0
+            ? (sourceConfigs as VideoSource[])
+            : [];
+        const globalSources = await getGlobalSources();
+        // Merge global sources with client sources; client sources win on id conflict.
+        const sources = dedupeById([...clientSources, ...globalSources]);
 
         if (sources.length === 0) {
           safeSend({ type: 'error', message: 'No valid sources provided' });
