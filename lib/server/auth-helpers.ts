@@ -13,6 +13,8 @@ export interface SeedAccountInput {
   name: string;
   role: Role;
   customPermissions: Permission[];
+  /** 是否共享全局视频源（管理员统一维护的源列表）。默认 true。 */
+  shareGlobalSources?: boolean;
 }
 
 export interface StoredAccountRecord {
@@ -21,6 +23,8 @@ export interface StoredAccountRecord {
   name: string;
   role: Role;
   customPermissions: Permission[];
+  /** 是否共享全局视频源。缺失视为 true（兼容旧数据）。 */
+  shareGlobalSources?: boolean;
   passwordHash: string;
   passwordSalt: string;
   createdAt: number;
@@ -34,6 +38,7 @@ export interface SessionPayload {
   name: string;
   role: Role;
   customPermissions?: Permission[];
+  shareGlobalSources?: boolean;
   mode: 'managed' | 'legacy';
   iat: number;
 }
@@ -227,6 +232,7 @@ export async function verifySessionToken(token: string, secret: string): Promise
       name: String(payload.name),
       role: normalizeRole(payload.role),
       customPermissions: normalizePermissions(payload.customPermissions),
+      shareGlobalSources: typeof payload.shareGlobalSources === 'boolean' ? payload.shareGlobalSources : true,
       mode: payload.mode === 'managed' ? 'managed' : 'legacy',
       iat: Number(payload.iat),
     };
@@ -331,6 +337,7 @@ export async function createStoredAccount(
     name: input.name,
     role: input.role,
     customPermissions: input.customPermissions,
+    shareGlobalSources: input.shareGlobalSources ?? true,
     passwordHash: password.hash,
     passwordSalt: password.salt,
     createdAt: now,

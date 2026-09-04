@@ -10,6 +10,7 @@ import { searchVideos } from '@/lib/api/client';
 import { getSourceName } from '@/lib/utils/source-names';
 import { traditionalToSimplified } from '@/lib/utils/chinese-convert';
 import { dedupeById, getGlobalSources } from '@/lib/server/global-sources';
+import { getServerSession } from '@/lib/server/auth';
 import type { VideoSource } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -50,7 +51,12 @@ export async function POST(request: NextRequest) {
           Array.isArray(sourceConfigs) && sourceConfigs.length > 0
             ? (sourceConfigs as VideoSource[])
             : [];
-        const globalSources = await getGlobalSources();
+
+        // 按当前账户的「共享全局视频源」开关决定是否注入全局源。
+        // 未登录（或 legacy 模式）默认视为共享，避免影响既有体验。
+        const session = await getServerSession(request);
+        const shareGlobal = session ? (session.shareGlobalSources !== false) : true;
+        const globalSources = shareGlobal ? await getGlobalSources() : [];
         // Merge global sources with client sources; client sources win on id conflict.
         const sources = dedupeById([...clientSources, ...globalSources]);
 

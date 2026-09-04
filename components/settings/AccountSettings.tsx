@@ -15,6 +15,7 @@ interface AccountInfo {
   name: string;
   role: Role;
   customPermissions: Permission[];
+  shareGlobalSources?: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -25,6 +26,7 @@ interface EditableAccount {
   name: string;
   role: Role;
   customPermissions: Permission[];
+  shareGlobalSources?: boolean;
   password: string;
   isNew?: boolean;
   markedForDeletion?: boolean;
@@ -57,6 +59,7 @@ function buildEditableAccounts(accounts: AccountInfo[]): EditableAccount[] {
     name: account.name,
     role: account.role,
     customPermissions: account.customPermissions,
+    shareGlobalSources: account.shareGlobalSources !== false,
     password: '',
   }));
 }
@@ -164,6 +167,7 @@ export function AccountSettings() {
         name: '',
         role: 'viewer',
         customPermissions: [],
+        shareGlobalSources: true,
         password: '',
         isNew: true,
       },
@@ -251,6 +255,7 @@ export function AccountSettings() {
               password: draft.password,
               role: draft.role,
               customPermissions: draft.customPermissions,
+              shareGlobalSources: draft.shareGlobalSources ?? true,
             }),
           });
           const data = await response.json();
@@ -269,6 +274,9 @@ export function AccountSettings() {
         if (draft.role !== original.role) patch.role = draft.role;
         if (!arraysEqual(draft.customPermissions, original.customPermissions)) {
           patch.customPermissions = draft.customPermissions;
+        }
+        if (draft.shareGlobalSources !== original.shareGlobalSources) {
+          patch.shareGlobalSources = draft.shareGlobalSources;
         }
         if (draft.password) patch.password = draft.password;
 
@@ -537,6 +545,18 @@ export function AccountSettings() {
                             onChange={(event) => updateDraftAccount(index, { password: event.target.value })}
                             className="w-full px-3 py-2 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[var(--radius-2xl)] text-sm text-[var(--text-color)] focus:outline-none focus:border-[var(--accent-color)]"
                           />
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={account.shareGlobalSources !== false}
+                            onChange={(event) => updateDraftAccount(index, { shareGlobalSources: event.target.checked })}
+                            className="w-4 h-4 rounded accent-[var(--accent-color)] cursor-pointer"
+                          />
+                          <span className="text-xs text-[var(--text-color-secondary)]">
+                            共享全局视频源
+                          </span>
                         </label>
 
                         {extraPermissions.length > 0 && (

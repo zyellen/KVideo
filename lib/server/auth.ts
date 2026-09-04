@@ -37,6 +37,8 @@ export interface ServerAuthSession {
   name: string;
   role: Role;
   customPermissions: Permission[];
+  /** 是否共享全局视频源（管理员统一维护的源列表）。缺失视为 true。 */
+  shareGlobalSources?: boolean;
   mode: 'managed' | 'legacy';
   iat: number;
 }
@@ -68,6 +70,7 @@ export interface AccountInfo {
   name: string;
   role: Role;
   customPermissions: Permission[];
+  shareGlobalSources?: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -278,6 +281,7 @@ function sessionPayloadToServerSession(payload: SessionPayload): ServerAuthSessi
     name: payload.name,
     role: payload.role,
     customPermissions: normalizePermissions(payload.customPermissions),
+    shareGlobalSources: payload.shareGlobalSources ?? true,
     mode: payload.mode,
     iat: payload.iat,
   };
@@ -307,6 +311,7 @@ async function signSession(session: ServerAuthSession, loginMode: LoginMode): Pr
       name: session.name,
       role: session.role,
       customPermissions: session.customPermissions,
+      shareGlobalSources: session.shareGlobalSources ?? true,
       mode: session.mode,
       iat: session.iat,
     },
@@ -385,6 +390,7 @@ async function authenticateManagedLogin(username: string, password: string): Pro
     name: account.name,
     role: account.role,
     customPermissions: account.customPermissions,
+    shareGlobalSources: account.shareGlobalSources ?? true,
     mode: 'managed',
     iat: Date.now(),
   };
@@ -537,6 +543,7 @@ export async function listAccountInfo(): Promise<AccountInfo[]> {
       name: account.name,
       role: account.role,
       customPermissions: account.customPermissions,
+      shareGlobalSources: account.shareGlobalSources ?? true,
       createdAt: account.createdAt,
       updatedAt: account.updatedAt,
     }));
@@ -580,6 +587,7 @@ function sanitizeAccountInput(body: unknown): {
   password?: string;
   role?: Role;
   customPermissions?: Permission[];
+  shareGlobalSources?: boolean;
 } {
   if (!body || typeof body !== 'object') return {};
   const input = body as Record<string, unknown>;
@@ -590,6 +598,7 @@ function sanitizeAccountInput(body: unknown): {
     password: typeof input.password === 'string' ? input.password : undefined,
     role: typeof input.role === 'string' ? normalizeRole(input.role) : undefined,
     customPermissions: Array.isArray(input.customPermissions) ? normalizePermissions(input.customPermissions as string[]) : undefined,
+    shareGlobalSources: typeof input.shareGlobalSources === 'boolean' ? input.shareGlobalSources : undefined,
   };
 }
 
@@ -633,6 +642,7 @@ export async function createManagedAccount(body: unknown): Promise<AccountInfo> 
     name: created.name,
     role: created.role,
     customPermissions: created.customPermissions,
+    shareGlobalSources: created.shareGlobalSources ?? true,
     createdAt: created.createdAt,
     updatedAt: created.updatedAt,
   };
@@ -656,6 +666,7 @@ export async function updateManagedAccount(accountId: string, body: unknown): Pr
     name: input.name || current.name,
     role: input.role || current.role,
     customPermissions: input.customPermissions ?? current.customPermissions,
+    shareGlobalSources: input.shareGlobalSources ?? current.shareGlobalSources ?? true,
     updatedAt: Date.now(),
   };
 
@@ -675,6 +686,7 @@ export async function updateManagedAccount(accountId: string, body: unknown): Pr
     name: updated.name,
     role: updated.role,
     customPermissions: updated.customPermissions,
+    shareGlobalSources: updated.shareGlobalSources ?? true,
     createdAt: updated.createdAt,
     updatedAt: updated.updatedAt,
   };

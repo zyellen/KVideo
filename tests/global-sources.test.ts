@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   dedupeById,
   sanitizeSources,
-} from '@/lib/server/global-sources';
+} from '@/lib/server/global-sources-utils';
 
 test('dedupeById drops duplicate ids keeping the first occurrence', () => {
   const clientSource = { id: 's1', name: 'Client S1', baseUrl: 'https://client', searchPath: '/provide/vod', detailPath: '/provide/vod' };
