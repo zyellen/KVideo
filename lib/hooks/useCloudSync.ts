@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useHistoryStore, usePremiumHistoryStore } from '@/lib/store/history-store';
 import { useFavoritesStore, usePremiumFavoritesStore } from '@/lib/store/favorites-store';
+import { keepRenderableFavorites, keepRenderableHistory } from '@/lib/utils/sync-records';
 import { getProfileId } from '@/lib/store/auth-store';
 import type { FavoriteItem, VideoHistoryItem } from '@/lib/types';
 
@@ -61,15 +62,18 @@ export function useCloudSync(isPremium = false) {
       const result = await response.json();
 
       if (result.success && result.data) {
-        // 合并云端数据到本地，而非直接覆盖
-        if (result.data.history?.length > 0) {
+        // 先过滤掉无法渲染的记录（无 videoId 等），再与本地合并（保留更新的时间戳）
+        const cloudHistory = keepRenderableHistory(result.data.history);
+        const cloudFavorites = keepRenderableFavorites(result.data.favorites);
+
+        if (cloudHistory.length > 0) {
           const localHistory = historyStore.getState().viewingHistory;
-          const merged = mergeHistory(localHistory, result.data.history);
+          const merged = mergeHistory(localHistory, cloudHistory);
           historyStore.getState().importHistory(merged);
         }
-        if (result.data.favorites?.length > 0) {
+        if (cloudFavorites.length > 0) {
           const localFavorites = favoritesStore.getState().favorites;
-          const merged = mergeFavorites(localFavorites, result.data.favorites);
+          const merged = mergeFavorites(localFavorites, cloudFavorites);
           favoritesStore.getState().importFavorites(merged);
         }
       }

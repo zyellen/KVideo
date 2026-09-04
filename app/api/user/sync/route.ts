@@ -1,29 +1,9 @@
-import { Redis } from '@upstash/redis/cloudflare';
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticationRequiredResponse } from '@/lib/server/api-responses';
 import { getServerSession } from '@/lib/server/auth';
+import { getRedisClient } from '@/lib/server/redis';
 
 export const runtime = 'edge';
-
-// 缓存 Redis 客户端实例，避免重复创建
-let cachedRedis: Redis | null | undefined;
-
-/**
- * 安全获取 Redis 客户端，未配置时返回 null 而非抛出异常
- */
-function getRedisClient(): Redis | null {
-  if (cachedRedis !== undefined) {
-    return cachedRedis;
-  }
-
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    cachedRedis = null;
-    return cachedRedis;
-  }
-
-  cachedRedis = Redis.fromEnv();
-  return cachedRedis;
-}
 
 /**
  * 获取用户同步数据 —— 跨设备收藏/历史记录的基础
